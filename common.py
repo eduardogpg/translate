@@ -14,16 +14,34 @@ def read_content(bucket, mediafile_key):
     except:
         return None
 
+def download_file(bucket, mediafile_key, local_path):
+    try:
+        import boto3
+
+        s3 = boto3.client('s3')
+        with open(local_path, 'wb') as file:
+            s3.download_fileobj(bucket, mediafile_key, file)
+
+    except:
+        return None
+
 def put_file(bucket, mediafile_key, local_path):
-    """
-    Crea un nuevo archivo en el bucket a partir de uno local
-    """
     try:
         import boto3
         
-        s3 = boto3.resource('s3')
-
-        s3.meta.client.upload_file(local_path, bucket, mediafile_key)
+        s3 = boto3.cliente('s3')
+        s3.upload_file(local_path, bucket, mediafile_key)
+        return True
 
     except:
-        return None        
+        return None
+
+def delete_file(bucket, mediafile_key):
+    try:
+        import boto3
+
+        client = boto3.client('s3')
+        client.delete_object(bucket, mediafile_key)
+        return True
+    except:
+        return None
