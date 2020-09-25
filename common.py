@@ -1,4 +1,7 @@
 def read_content(bucket, mediafile_key):
+    """
+    Lee el contenido de un archivo remoto sin descargarlo
+    """
     try:
         import boto3
         
@@ -12,6 +15,9 @@ def read_content(bucket, mediafile_key):
         return None
 
 def put_file(bucket, mediafile_key, local_path):
+    """
+    Crea un nuevo archivo en el bucket a partir de uno local
+    """
     try:
         import boto3
         

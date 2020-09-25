@@ -1,3 +1,4 @@
+import os
 import json
 import boto3
 
@@ -7,6 +8,10 @@ from common import read_content
 BUCKET = 'pywombat'
 
 def translate(txt, source='es', target='en'):
+    """
+    Transcribe el parámetro txt de source a target utilizando el servicio de translate
+    La función retorna el translate 
+    """
     translate = boto3.client('translate')
 
     response = translate.translate_text(Text=txt,
@@ -16,6 +21,10 @@ def translate(txt, source='es', target='en'):
     return response
 
 def translate_from_mediafile(mediafile_key, source='es', target='en', save=True):
+    """
+    Genera una traducción a partir de un archivo remoto (Archivo almacenado en el bucket)
+    La función tiene la posibilidad de almacenar la traducción en el bucket, esto mediante un archivo .txt
+    """
     try:
         content = read_content(BUCKET, mediafile_key)
 
@@ -35,6 +44,7 @@ def translate_from_mediafile(mediafile_key, source='es', target='en', save=True)
                 
                 put_file(BUCKET, translate_mediafile_key, local_path)
                 
+                os.remove(local_path)
                 return translate_mediafile_key
 
             else:
