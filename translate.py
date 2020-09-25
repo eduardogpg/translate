@@ -54,7 +54,7 @@ def translate_from_mediafile(mediafile_key, source='es', target='en', save=True)
 
 if __name__ == '__main__':
     
-    medifile = 'transcribe_f9b0f6252f354a9ba37f9e3b8820a219_my_custome_job.json'
+    medifile = 'transcribe_a6cbfb90c3ac47219f3b380fbea344d5_my_custome_job.json'
     
     source_lenguage = 'es'
     target_lenguage = 'en'
