@@ -35,6 +35,7 @@ def transcribe_job(mediafile_uri, format='mp4', lenguage='en-US'):
 if __name__ == '__main__':
     
     uri = 'https://pywombat.s3.us-east-2.amazonaws.com/video.mp4'
+    lenguage = 'es-ES'
 
-    response = transcribe_job(uri)
+    response = transcribe_job(uri, format='mp4', lenguage)
     print(response)
