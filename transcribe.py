@@ -2,9 +2,7 @@ import boto3
 import time
 import uuid
 
-BUCKET = 'pywombat'
-
-def transcribe_job(mediafile_uri, format='mp4', lenguage='en-US'):
+def transcribe(bucket, mediafile_uri, format='mp4', lenguage='en-US'):
     transcribe = boto3.client('transcribe')
 
     job = f'transcribe_{uuid.uuid4().hex}_my_custome_job'
@@ -14,28 +12,25 @@ def transcribe_job(mediafile_uri, format='mp4', lenguage='en-US'):
         Media={
             'MediaFileUri': mediafile_uri
         },
-        OutputBucketName=BUCKET,
+        OutputBucketName=bucket,
         MediaFormat=format,
         LanguageCode=lenguage
     )
 
-    print('>>> A new Job will start', job)
+    print('>>> Comenzando al transcripción')
 
     while True:
         response = transcribe.get_transcription_job(TranscriptionJobName=job)
         if response['TranscriptionJob']['TranscriptionJobStatus'] in ['COMPLETED', 'FAILED']:
             break
         
-        print("Transcribe in progress")
+        print("Transcripción en progreso...")
         time.sleep(5)
     
-    print('>>> The transcription has finished')
-    return response["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
-
-if __name__ == '__main__':
+    print('>>> La transcripción ha finalizado')
     
-    uri = 'https://pywombat.s3.us-east-2.amazonaws.com/video.mp4'
-    lenguage = 'es-ES'
+    remote_mediafile_uri = response["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
+    job = remote_mediafile_uri.split('/')[-1]
 
-    response = transcribe_job(uri, 'mp4', lenguage)
-    print(response)
+    return job
+
