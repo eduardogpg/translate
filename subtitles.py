@@ -73,7 +73,7 @@ def create_subtitle_file(bucket, medifile_key):
     try:
         print('>>> Generando subtitulos')
 
-        file_path = 'temp/subtitle.srt'
+        file_path = 'subtitle.srt'
         with open(file_path, 'w') as file:
             for item in response:
                 
