@@ -39,7 +39,9 @@ def translate_from_mediafile(bucket, mediafile_key, source='es', target='en', sa
 
             else:
                 return response
-    except:
+    
+    except Exception as err:
+        print(err)
         return None
 
 

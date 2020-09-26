@@ -85,7 +85,7 @@ def create_subtitle_file(bucket, medifile_key):
                 new_sentence = generate_line(line, sentence, start_time, end_time)
                 file.write(new_sentence + '\n')
         
-        print(f'>>> Subtitulos generados {file_path}')
+        print(f'>>> Subtitulos generados, nuevo archivo: {file_path}')
         
     except Exception as err:
         print(err)
