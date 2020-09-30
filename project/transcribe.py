@@ -17,7 +17,7 @@ def transcribe(bucket, mediafile_uri, format='mp4', lenguage='en-US'):
         LanguageCode=lenguage
     )
 
-    print('>>> Comenzando al transcripción')
+    print('>>> Comenzando transcripción')
 
     while True:
         response = transcribe.get_transcription_job(TranscriptionJobName=job)
@@ -25,9 +25,9 @@ def transcribe(bucket, mediafile_uri, format='mp4', lenguage='en-US'):
             break
         
         print("Transcripción en progreso...")
-        time.sleep(5)
+        time.sleep(10)
     
-    print('>>> La transcripción ha finalizado')
+    print('>>> Transcripción finalizada')
     
     remote_mediafile_uri = response["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
     job = remote_mediafile_uri.split('/')[-1]

@@ -1,10 +1,11 @@
 import json
+from mutagen.mp3 import MP3
 
 SUBTITLE_TEMPLATE = """{line}
 {start_time} --> {end_time}
 {sentence}\n"""
 
-from common import read_content
+from .common import read_content
 
 def generate_phrase():
     return {
@@ -57,10 +58,46 @@ def generate_subtitles(bucket, medifile_key):
     except Exception as err:
         print(err)
 
+def get_duration_from_mp3_file(local_path):
+    audio = MP3(local_path)
+
+    return audio.info.length
+
+def get_seconds_from_translation(text, target, file_name, local_path='temp/voices.mp3'):
+    client = boto3.client('polly')
+
+    response = client.synthesize_speech(OutputFormat="mp3",
+                                        SampleRate="22050",
+                                        Text=text,
+                                        VoiceId='Amy')
+
+
+    body = response['AudioStream'].read()
+    
+    with open(local_path, 'wb') as file:
+        file.write(body)
+
+    duration = get_duration_from_mp3_file(local_path)
+    
+def generate_translated_subtitles(bucket, medifile_key):
+    try:
+        seconds = 0
+        phrases = list()
+        new_phrase = True
+        phrase = generate_phrase()
+
+        translation = read_content(bucket, medifile_key)
+        words = str(translation).split(' ')
+        
+
+    except Exception as err:
+        print(err)
+
 def generate_line(line, sentence, start_time, end_time):
+    
     return SUBTITLE_TEMPLATE.format(
         line=line,
-        sentence=sentence,
+        sentence=sentence.strip(),
         start_time=start_time,
         end_time=end_time
     )
@@ -79,13 +116,20 @@ def create_subtitle_file(bucket, medifile_key):
                 
                 start_time = item['start_time']
                 end_time = item['end_time']
-                sentence = ' '.join(item['words'])
+
+                sentence = ''
+                
+                for word in item['words']:
+                    div = '' if word in ['.', ',', '!', '?'] else ' '
+                    sentence = sentence + div + word
+
                 line += 1
 
                 new_sentence = generate_line(line, sentence, start_time, end_time)
                 file.write(new_sentence + '\n')
         
-        print(f'>>> Subtitulos generados, nuevo archivo: {file_path}')
+        print(f'>>> Subtitulos generados: {file_path}')
+        return file_path
         
     except Exception as err:
         print(err)

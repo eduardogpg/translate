@@ -1,9 +1,11 @@
 import os
 import json
 import boto3
+import tempfile
 
-from common import put_file
-from common import read_content
+from .common import put_file
+from .common import read_content
+from .common import put_object
 
 def translate(txt, source='es', target='en'):
     translate = boto3.client('translate')
@@ -25,18 +27,14 @@ def translate_from_mediafile(bucket, mediafile_key, source='es', target='en', sa
             response = translate(transcript, source, target)
 
             if save:
-                translate_mediafile_key = mediafile_key.replace('json', 'txt').replace('transcribe', '')
-                translate_mediafile_key = f'translate{translate_mediafile_key}'
-                local_path = 'temp/' + translate_mediafile_key
+                content = response['TranslatedText']
+                translate_mediafile_key = mediafile_key.replace('.json', '.txt')
+                translate_mediafile_key = translate_mediafile_key.replace('transcribe', 'translate')
+                
+                put_object(bucket, translate_mediafile_key, content)
 
-                with open(local_path, 'w') as file:
-                    file.write(response['TranslatedText'])
-                
-                put_file(bucket, translate_mediafile_key, local_path)
-                
-                os.remove(local_path)
                 return translate_mediafile_key
-
+            
             else:
                 return response
     

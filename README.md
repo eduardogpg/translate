@@ -1,10 +1,9 @@
 Para generar el subtitulo del vídeo es necesario un par de cosas:
 
-1.- Ingresar la dirección completa del vídeo. Ejemplo:
+1.- Ingresar la dirección completa del vídeo a generar los subtitulos. Ejemplo:
 https://pywombat.s3.us-east-2.amazonaws.com/video.mp4
 
-2.-Ingresa el lenguaj del vídeo. Por ejemplo: es-Es
-
+2.-Ingresa el lenguaje del vídeo. Por ejemplo: es-Es
 
 # Instalación
 

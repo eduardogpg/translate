@@ -1,7 +1,7 @@
+import boto3
+
 def read_content(bucket, mediafile_key):
     try:
-        import boto3
-        
         s3 = boto3.client('s3')
         data = s3.get_object(Bucket=bucket, Key=mediafile_key)
 
@@ -14,11 +14,12 @@ def read_content(bucket, mediafile_key):
 
 def download_file(bucket, mediafile_key, local_path):
     try:
-        import boto3
-
         s3 = boto3.client('s3')
+        
         with open(local_path, 'wb') as file:
             s3.download_fileobj(bucket, mediafile_key, file)
+
+        return local_path
 
     except Exception as err:
         print(err)
@@ -26,23 +27,23 @@ def download_file(bucket, mediafile_key, local_path):
 
 def put_file(bucket, mediafile_key, local_path):
     try:
-        import boto3
-        
         s3 = boto3.client('s3')
         s3.upload_file(local_path, bucket, mediafile_key)
+        
         return True
 
     except Exception as err:
         print(err)
         return None
 
-def delete_file(bucket, mediafile_key):
+def put_object(bucket, mediafile_key, content):
     try:
-        import boto3
-
-        client = boto3.client('s3')
-        return client.delete_object(Bucket=bucket, Key=mediafile_key)
+        s3 = boto3.client('s3')
         
+        s3.put_object(Bucket=bucket, Key=mediafile_key, Body=content)
+        
+        return True
+
     except Exception as err:
         print(err)
         return None
