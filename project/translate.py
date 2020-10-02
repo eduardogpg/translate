@@ -16,7 +16,7 @@ def translate(txt, source='es', target='en'):
     
     return response
 
-def translate_from_mediafile(bucket, mediafile_key, source='es', target='en', save=True):
+def translate_from_mediafile(bucket, mediafile_key, prefix='translate_', source='en', target='es', save=True):
     try:
         content = read_content(bucket, mediafile_key)
 
@@ -29,7 +29,9 @@ def translate_from_mediafile(bucket, mediafile_key, source='es', target='en', sa
             if save:
                 content = response['TranslatedText']
                 translate_mediafile_key = mediafile_key.replace('.json', '.txt')
-                translate_mediafile_key = translate_mediafile_key.replace('transcribe', 'translate')
+                
+                if prefix:
+                    translate_mediafile_key = translate_mediafile_key.replace('transcribe_', prefix)
                 
                 put_object(bucket, translate_mediafile_key, content)
 

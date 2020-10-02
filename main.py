@@ -1,14 +1,11 @@
-from project.transcribe import transcribe
-from project.subtitles import create_subtitle_file
-from project.translate import translate_from_mediafile
+from project import put_file
+from project import transcribe
+from project import create_subtitle_file
+from project import translate_from_mediafile
 
-from project.common import put_file
-
-def get_bucket_from_mediafile(mediafile_uri):
-    return mediafile_uri.split('//')[1].split('.')[0]
-
-def format_from_mediafile(mediafile_uri):
-    return mediafile_uri.split('.')[-1]
+from project import get_name_medifile
+from project import get_bucket_from_mediafile
+from project import get_format_from_mediafile
 
 if __name__ == '__main__':
     
@@ -17,18 +14,17 @@ if __name__ == '__main__':
         lenguage = input('Ingresa el lenguaje del vídep (Ejemplo: en-US): ')
         
         bucket = get_bucket_from_mediafile(mediafile_uri)
-        format = format_from_mediafile(mediafile_uri)
+        name = get_name_medifile(mediafile_uri)
+        format = get_format_from_mediafile(mediafile_uri)
 
-        #source_lenguage = input('Ingresa el lenguage del vídeo: (es): ')
-        #target_lenguage = input('Ingresa el lenguage a traducir: (en): ')
-
-        transcribe_path = transcribe(bucket, mediafile_uri, format, lenguage)
+        transcribe_path = transcribe(bucket, mediafile_uri, name=name, format=format, lenguage=lenguage)
         
-        #translate_from_mediafile(bucket, transcribe_path)
+        # translate_from_mediafile(bucket, mediafile_uri)
 
-        subtitle_path = create_subtitle_file(bucket, transcribe_path)
+        subtitle_name = f'subtitle_{name}.srt'
+        subtitle_path = create_subtitle_file(bucket, transcribe_path, subtitle_name)
 
-        put_file(bucket, 'subtitle.srt', subtitle_path)
+        put_file(bucket, subtitle_name, subtitle_path)
 
     except Exception as err:
         print(err)

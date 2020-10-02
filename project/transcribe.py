@@ -2,10 +2,10 @@ import boto3
 import time
 import uuid
 
-def transcribe(bucket, mediafile_uri, format='mp4', lenguage='en-US'):
+def transcribe(bucket, mediafile_uri, name='', prefix='transcribe_', format='mp4', lenguage='en-US'):
     transcribe = boto3.client('transcribe')
 
-    job = f'transcribe_{uuid.uuid4().hex}_my_custome_job'
+    job = f'{prefix}{uuid.uuid4().hex}_{name}'
 
     transcribe.start_transcription_job(
         TranscriptionJobName=job,

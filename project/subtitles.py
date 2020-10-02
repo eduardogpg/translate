@@ -24,7 +24,7 @@ def get_time_code(seconds):
 
 def get_milliseconds(seconds):
     return float(seconds.split(':')[-1].replace(',', '.'))
-        
+
 def generate_subtitles(bucket, medifile_key, limit=12):
     
     try:
@@ -36,6 +36,8 @@ def generate_subtitles(bucket, medifile_key, limit=12):
         phrases = list()
         new_phrase = True
         phrase = generate_phrase()
+
+        last_phrase = None
         last_end_time = '00:00:00,000'
 
         for item in items:
@@ -51,31 +53,22 @@ def generate_subtitles(bucket, medifile_key, limit=12):
                 if item['type'] == 'pronunciation':
                     phrase['end_time'] = get_time_code(float(item['end_time']))
 
-                    if get_milliseconds(phrase['end_time']) > get_milliseconds(last_end_time) + .750 :
-
-                        last_end_time = phrase['end_time']
-
-                        new_phrase = True
-                        phrases.append(phrase)
-                        phrase = generate_phrase()
-                    
-                    else:
-                        last_end_time = phrase['end_time']
-
             phrase['words'].append(word)
 
-            if len(phrase['words']) >= limit:
+            if len(phrase['words']) == limit:
+                
                 new_phrase = True
                 phrases.append(phrase)
                 phrase = generate_phrase()
             
             else:
 
-                if word in ('.', ',', '?'):
+                if word in ('.', '?'):
                     
                     if len(phrase['words']) == 1:
                         last_phrase = phrases.pop(1)
                         last_phrase['words'].append(word)
+                        phrases.append(last_phrase)
 
                     new_phrase = True
                     phrases .append(phrase)
@@ -85,6 +78,7 @@ def generate_subtitles(bucket, medifile_key, limit=12):
 
     except Exception as err:
         print('Error:', err)
+
 
 def get_duration_from_mp3_file(local_path):
     audio = MP3(local_path)
@@ -116,7 +110,7 @@ def generate_line(line, sentence, start_time, end_time):
         end_time=end_time
     )
 
-def create_subtitle_file(bucket, medifile_key):
+def create_subtitle_file(bucket, medifile_key, local_path='subtitles.str'):
     response = generate_subtitles(bucket, medifile_key)
 
     line = 0
@@ -124,7 +118,7 @@ def create_subtitle_file(bucket, medifile_key):
     try:
         print('>>> Generando subtitulos')
         
-        file_path = 'super_new_subtitle.srt'
+        file_path = local_path
         
         with open(file_path, 'w') as file:
             for item in response:

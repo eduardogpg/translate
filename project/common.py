@@ -47,3 +47,13 @@ def put_object(bucket, mediafile_key, content):
     except Exception as err:
         print(err)
         return None
+
+def get_bucket_from_mediafile(mediafile_uri):
+    return mediafile_uri.split('//')[1].split('.')[0]
+
+def get_format_from_mediafile(mediafile_uri):
+    return mediafile_uri.split('.')[-1]
+
+def get_name_medifile(mediafile_uri):
+    mediafile = mediafile_uri.split('/')[-1]
+    return mediafile.split('.')[0]
