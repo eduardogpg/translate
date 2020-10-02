@@ -110,7 +110,7 @@ def generate_line(line, sentence, start_time, end_time):
         end_time=end_time
     )
 
-def create_subtitle_file(bucket, medifile_key, local_path='subtitles.str'):
+def create_subtitle_file(bucket, medifile_key, local_path='subtitles.srt'):
     response = generate_subtitles(bucket, medifile_key)
 
     line = 0

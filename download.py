@@ -1,4 +1,4 @@
-from project.common import download_file
+from project import download_file
 
 if __name__ == '__main__':
 
@@ -7,5 +7,3 @@ if __name__ == '__main__':
     local_path = input('Dirección de descarga: ')
 
     download_file(bucket, mediafile_key, local_path)
-
-    
