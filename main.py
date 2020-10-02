@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
         transcribe_path = transcribe(bucket, mediafile_uri, format, lenguage)
         
-        translate_from_mediafile(bucket, transcribe_path)
+        #translate_from_mediafile(bucket, transcribe_path)
 
         subtitle_path = create_subtitle_file(bucket, transcribe_path)
 

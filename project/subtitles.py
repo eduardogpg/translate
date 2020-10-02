@@ -22,7 +22,11 @@ def get_time_code(seconds):
     
     return str( "%02d:%02d:%02d,%03d" % (00, t_mins, int(t_secs), t_hund ))
 
-def generate_subtitles(bucket, medifile_key):
+def get_milliseconds(seconds):
+    return float(seconds.split(':')[-1].replace(',', '.'))
+        
+def generate_subtitles(bucket, medifile_key, limit=12):
+    
     try:
         content = read_content(bucket, medifile_key)
         content = json.loads(content)
@@ -32,31 +36,55 @@ def generate_subtitles(bucket, medifile_key):
         phrases = list()
         new_phrase = True
         phrase = generate_phrase()
+        last_end_time = '00:00:00,000'
 
         for item in items:
             
+            word = item['alternatives'][0]['content']
+
             if new_phrase:
                 if item['type'] == 'pronunciation':
                     phrase['start_time'] = get_time_code(float(item['start_time']))
                     new_phrase = False
-                
+            
             else:
                 if item['type'] == 'pronunciation':
                     phrase['end_time'] = get_time_code(float(item['end_time']))
 
-            phrase['words'].append(
-                item['alternatives'][0]['content']
-            )
+                    if get_milliseconds(phrase['end_time']) > get_milliseconds(last_end_time) + .750 :
 
-            if len(phrase['words']) == 10:
+                        last_end_time = phrase['end_time']
+
+                        new_phrase = True
+                        phrases.append(phrase)
+                        phrase = generate_phrase()
+                    
+                    else:
+                        last_end_time = phrase['end_time']
+
+            phrase['words'].append(word)
+
+            if len(phrase['words']) >= limit:
                 new_phrase = True
                 phrases.append(phrase)
                 phrase = generate_phrase()
+            
+            else:
+
+                if word in ('.', ',', '?'):
+                    
+                    if len(phrase['words']) == 1:
+                        last_phrase = phrases.pop(1)
+                        last_phrase['words'].append(word)
+
+                    new_phrase = True
+                    phrases .append(phrase)
+                    phrase = generate_phrase()
 
         return phrases
 
     except Exception as err:
-        print(err)
+        print('Error:', err)
 
 def get_duration_from_mp3_file(local_path):
     audio = MP3(local_path)
@@ -79,20 +107,6 @@ def get_seconds_from_translation(text, target, file_name, local_path='temp/voice
 
     duration = get_duration_from_mp3_file(local_path)
     
-def generate_translated_subtitles(bucket, medifile_key):
-    try:
-        seconds = 0
-        phrases = list()
-        new_phrase = True
-        phrase = generate_phrase()
-
-        translation = read_content(bucket, medifile_key)
-        words = str(translation).split(' ')
-        
-
-    except Exception as err:
-        print(err)
-
 def generate_line(line, sentence, start_time, end_time):
     
     return SUBTITLE_TEMPLATE.format(
@@ -106,24 +120,23 @@ def create_subtitle_file(bucket, medifile_key):
     response = generate_subtitles(bucket, medifile_key)
 
     line = 0
-    
+  
     try:
         print('>>> Generando subtitulos')
-
-        file_path = 'subtitle.srt'
+        
+        file_path = 'super_new_subtitle.srt'
+        
         with open(file_path, 'w') as file:
             for item in response:
-                
+                line += 1
+
                 start_time = item['start_time']
                 end_time = item['end_time']
 
-                sentence = ''
-                
-                for word in item['words']:
-                    div = '' if word in ['.', ',', '!', '?'] else ' '
-                    sentence = sentence + div + word
+                sentence = ' '.join(item['words'])
 
-                line += 1
+                sentence = sentence.replace(' ,', ',')
+                sentence = sentence.replace(' .', '.')
 
                 new_sentence = generate_line(line, sentence, start_time, end_time)
                 file.write(new_sentence + '\n')
@@ -132,4 +145,4 @@ def create_subtitle_file(bucket, medifile_key):
         return file_path
         
     except Exception as err:
-        print(err)
+        print('Error:', err)
