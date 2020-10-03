@@ -25,7 +25,10 @@ def get_time_code(seconds):
 def get_milliseconds(seconds):
     return float(seconds.split(':')[-1].replace(',', '.'))
 
-def generate_subtitles(bucket, medifile_key, limit=12):
+def seconds_to_float(seconds):
+    return float(seconds.split(':')[-1].replace(',', '.'))
+
+def generate_subtitles(bucket, medifile_key, limit=15):
     
     try:
         content = read_content(bucket, medifile_key)
@@ -37,48 +40,62 @@ def generate_subtitles(bucket, medifile_key, limit=12):
         new_phrase = True
         phrase = generate_phrase()
 
-        last_phrase = None
-        last_end_time = '00:00:00,000'
-
         for item in items:
             
             word = item['alternatives'][0]['content']
-
-            if new_phrase:
-                if item['type'] == 'pronunciation':
-                    phrase['start_time'] = get_time_code(float(item['start_time']))
-                    new_phrase = False
             
-            else:
+            if new_phrase:
+                
                 if item['type'] == 'pronunciation':
+                    new_phrase = False
+                    
+                    phrase['words'].append(word)
+                    
+                    phrase['start_time'] = get_time_code(float(item['start_time']))
                     phrase['end_time'] = get_time_code(float(item['end_time']))
 
-            phrase['words'].append(word)
+                elif item['type'] == 'punctuation':
+                    new_phrase = True
 
-            if len(phrase['words']) == limit:
+                    last_phrase = phrases[-1]
+                    last_phrase['words'].append(word)
+                    phrases[-1] = last_phrase
+
+            else:
+                if item['type'] == 'pronunciation':
+                    
+                    phrase['words'].append(word)
+                    phrase['end_time'] = get_time_code(float(item['end_time']))
+
+                elif item['type'] == 'punctuation':
+                    
+                    if word in ('.', '?', '!'):
+                        new_phrase = True
+                    
+                    phrase['words'].append(word)
+            
+
+            if phrase['words'] and ( len(phrase['words']) == limit or new_phrase):
+                
+                if len(phrase['words']) <= 2:
+                    
+                    last_phrase = phrases[-1]
+                    
+                    last_phrase['words'].extend(phrase['words'])
+                    last_phrase['end_time'] = phrase['end_time']
+
+                    phrases[-1] = last_phrase
+
+                else:
+                    phrases.append(phrase)
                 
                 new_phrase = True
-                phrases.append(phrase)
                 phrase = generate_phrase()
-            
-            else:
-
-                if word in ('.', '?'):
-                    
-                    if len(phrase['words']) == 1:
-                        last_phrase = phrases.pop(1)
-                        last_phrase['words'].append(word)
-                        phrases.append(last_phrase)
-
-                    new_phrase = True
-                    phrases .append(phrase)
-                    phrase = generate_phrase()
-
+    
         return phrases
 
     except Exception as err:
-        print('Error:', err)
-
+        print(err)
 
 def get_duration_from_mp3_file(local_path):
     audio = MP3(local_path)
@@ -134,9 +151,9 @@ def create_subtitle_file(bucket, medifile_key, local_path='subtitles.srt'):
 
                 new_sentence = generate_line(line, sentence, start_time, end_time)
                 file.write(new_sentence + '\n')
-        
+
         print(f'>>> Subtitulos generados: {file_path}')
         return file_path
         
     except Exception as err:
-        print('Error:', err)
+        print(err)

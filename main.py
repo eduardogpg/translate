@@ -11,15 +11,18 @@ if __name__ == '__main__':
     
     try:
         mediafile_uri = input('Ingresa la URL del vídeo: ')
-        lenguage = input('Ingresa el lenguaje del vídep (Ejemplo: en-US): ')
+        lenguage = input('Ingresa el lenguaje del vídeo (Ejemplo: en-US): ')
+
+        lenguage_o = input('Ingrese el idioma original (Ejemplo: en): ')
+        lenguage_d = input('Ingrese el idioma destion (Ejemplo: es): ')
         
         bucket = get_bucket_from_mediafile(mediafile_uri)
         name = get_name_medifile(mediafile_uri)
         format = get_format_from_mediafile(mediafile_uri)
 
         transcribe_path = transcribe(bucket, mediafile_uri, name=name, format=format, lenguage=lenguage)
-        
-        # translate_from_mediafile(bucket, mediafile_uri)
+
+        translate_from_mediafile(bucket, transcribe_path, source=lenguage_o, target=lenguage_d)
 
         subtitle_name = f'subtitle_{name}.srt'
         subtitle_path = create_subtitle_file(bucket, transcribe_path, subtitle_name)
