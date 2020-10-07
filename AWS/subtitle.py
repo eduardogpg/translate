@@ -1,18 +1,15 @@
 import json
-from mutagen.mp3 import MP3
+import logging
 
 SUBTITLE_TEMPLATE = """{line}
 {start_time} --> {end_time}
 {sentence}\n"""
 
 from .common import read_content
+from .common import put_file
 
 def generate_phrase():
-    return {
-        'start_time': None,
-        'end_time': None,
-        'words': list()
-    }
+    return { 'start_time': None, 'end_time': None, 'words': list() }
 
 def get_time_code(seconds):
     t_hund = int(seconds % 1 * 1000)
@@ -21,12 +18,6 @@ def get_time_code(seconds):
     t_mins = int( t_seconds / 60 )
     
     return str( "%02d:%02d:%02d,%03d" % (00, t_mins, int(t_secs), t_hund ))
-
-def get_milliseconds(seconds):
-    return float(seconds.split(':')[-1].replace(',', '.'))
-
-def seconds_to_float(seconds):
-    return float(seconds.split(':')[-1].replace(',', '.'))
 
 def generate_subtitles(bucket, medifile_key, limit=15):
     
@@ -95,29 +86,8 @@ def generate_subtitles(bucket, medifile_key, limit=15):
         return phrases
 
     except Exception as err:
-        print(err)
+        logging.error("Exception", exc_info=True)
 
-def get_duration_from_mp3_file(local_path):
-    audio = MP3(local_path)
-
-    return audio.info.length
-
-def get_seconds_from_translation(text, target, file_name, local_path='temp/voices.mp3'):
-    client = boto3.client('polly')
-
-    response = client.synthesize_speech(OutputFormat="mp3",
-                                        SampleRate="22050",
-                                        Text=text,
-                                        VoiceId='Amy')
-
-
-    body = response['AudioStream'].read()
-    
-    with open(local_path, 'wb') as file:
-        file.write(body)
-
-    duration = get_duration_from_mp3_file(local_path)
-    
 def generate_line(line, sentence, start_time, end_time):
     
     return SUBTITLE_TEMPLATE.format(
@@ -127,17 +97,21 @@ def generate_line(line, sentence, start_time, end_time):
         end_time=end_time
     )
 
-def create_subtitle_file(bucket, medifile_key, local_path='subtitles.srt'):
-    response = generate_subtitles(bucket, medifile_key)
 
+def subtitles_from_mediafile(bucket, medifile_key, prefix='subtitle_'):
     line = 0
-  
+
+    subtitle_mediafile_key = medifile_key.replace('translate_', prefix)
+    response = generate_subtitles(bucket, medifile_key)
+    
+    subtitle_mediafile_key = medifile_key.replace('.json', 'srt')
+    subtitle_mediafile_key = subtitle_mediafile_key.replace('transcribe_', prefix)
+
+    local_path = f'tmp/{subtitle_mediafile_key}'
+
     try:
-        print('>>> Generando subtitulos')
-        
-        file_path = local_path
-        
-        with open(file_path, 'w') as file:
+
+        with open(local_path, 'w') as file:
             for item in response:
                 line += 1
 
@@ -145,15 +119,16 @@ def create_subtitle_file(bucket, medifile_key, local_path='subtitles.srt'):
                 end_time = item['end_time']
 
                 sentence = ' '.join(item['words'])
-
                 sentence = sentence.replace(' ,', ',')
                 sentence = sentence.replace(' .', '.')
 
-                new_sentence = generate_line(line, sentence, start_time, end_time)
-                file.write(new_sentence + '\n')
+                sentence = generate_line(line, sentence, start_time, end_time)
+                file.write(sentence)
 
-        print(f'>>> Subtitulos generados: {file_path}')
-        return file_path
-        
+        put_file(bucket, subtitle_mediafile_key, local_path)
+
+        return subtitle_mediafile_key
+
     except Exception as err:
-        print(err)
+        logging.error("Exception", exc_info=True)
+        return None
