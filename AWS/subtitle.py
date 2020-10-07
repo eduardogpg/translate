@@ -3,13 +3,17 @@ import logging
 
 SUBTITLE_TEMPLATE = """{line}
 {start_time} --> {end_time}
-{sentence}\n"""
+{sentence}\n\n"""
 
 from .common import read_content
 from .common import put_file
 
+from .translate import translate
+
 def generate_phrase():
-    return { 'start_time': None, 'end_time': None, 'words': list() }
+    return { 'start_time': None, 'end_time': None, 
+            'words': list(), 
+            'sentence': '' }
 
 def get_time_code(seconds):
     t_hund = int(seconds % 1 * 1000)
@@ -19,7 +23,7 @@ def get_time_code(seconds):
     
     return str( "%02d:%02d:%02d,%03d" % (00, t_mins, int(t_secs), t_hund ))
 
-def generate_subtitles(bucket, medifile_key, limit=15):
+def generate_subtitles_from_transcribe(bucket, medifile_key, limit=15):
     
     try:
         content = read_content(bucket, medifile_key)
@@ -82,7 +86,13 @@ def generate_subtitles(bucket, medifile_key, limit=15):
                 
                 new_phrase = True
                 phrase = generate_phrase()
-    
+
+        for item in phrases:
+            sentence = ' '.join(item['words'])
+            sentence = sentence.replace(' ,', ',').replace(' .', '.')
+
+            item['sentence'] = sentence
+            
         return phrases
 
     except Exception as err:
@@ -97,38 +107,85 @@ def generate_line(line, sentence, start_time, end_time):
         end_time=end_time
     )
 
+def generate_line_translated(line, timer, sentence):
+    
+    return SUBTITLE_TEMPLATE_TRANSLATED.format(
+        line=line,
+        sentence=sentence.strip(),
+        timer=timer
+    )
 
-def subtitles_from_mediafile(bucket, medifile_key, prefix='subtitle_'):
+def get_timer(sentence):
+    return sentence.split(' --> ')
+
+def generate_subtitles_from_str(bucket, local_path):
+    
+    sentence = ''
+    current_line = 0
+    
+    current_phrase = generate_phrase()
+    phrases = list()
+
+    with open(local_path, 'r') as file:
+        for line in file.readlines():
+            
+            current_line += 1                
+            line = line.replace('\n', '')
+            
+            if current_line == 2:
+                start_time, end_time = get_timer(line)
+
+                if current_phrase.get('start_time') is None:
+                    current_phrase['start_time'] = start_time
+                
+                current_phrase['end_time'] = end_time
+
+            elif current_line == 3:
+
+                sentence = sentence + line
+
+                if '.' in line or '?' in line or '!' in line:
+
+                    current_phrase['sentence'] = translate(sentence)['TranslatedText']
+
+                    sentence = ''
+                    phrases.append(current_phrase)
+                    current_phrase = generate_phrase()
+
+            elif current_line == 4:
+                current_line = 0
+    
+    return phrases
+
+def generate_subtitle_file(response, local_path):
     line = 0
 
-    subtitle_mediafile_key = medifile_key.replace('translate_', prefix)
-    response = generate_subtitles(bucket, medifile_key)
+    with open(local_path, 'w') as file:
+        for item in response:
+            line += 1
+
+            start_time = item['start_time']
+            end_time = item['end_time']
+
+            sentence = generate_line(line, item['sentence'], start_time, end_time)
+            file.write(sentence)
+
+def subtitles_from_mediafile(bucket, medifile_key, prefix='subtitle_'):
     
-    subtitle_mediafile_key = medifile_key.replace('.json', 'srt')
+    response = generate_subtitles_from_transcribe(bucket, medifile_key)
+    
+    subtitle_mediafile_key = medifile_key.replace('.json', '.srt')
     subtitle_mediafile_key = subtitle_mediafile_key.replace('transcribe_', prefix)
 
     local_path = f'tmp/{subtitle_mediafile_key}'
 
-    try:
+    generate_subtitle_file(response, local_path)
+    put_file(bucket, subtitle_mediafile_key, local_path)
 
-        with open(local_path, 'w') as file:
-            for item in response:
-                line += 1
+    return subtitle_mediafile_key
 
-                start_time = item['start_time']
-                end_time = item['end_time']
+def subtitle_from_str_file(bucket, local_path):
 
-                sentence = ' '.join(item['words'])
-                sentence = sentence.replace(' ,', ',')
-                sentence = sentence.replace(' .', '.')
+    response = generate_subtitles_from_str(bucket, local_path)
 
-                sentence = generate_line(line, sentence, start_time, end_time)
-                file.write(sentence)
-
-        put_file(bucket, subtitle_mediafile_key, local_path)
-
-        return subtitle_mediafile_key
-
-    except Exception as err:
-        logging.error("Exception", exc_info=True)
-        return None
+    generate_subtitle_file(response, local_path)

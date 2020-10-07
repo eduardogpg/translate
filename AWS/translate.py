@@ -7,13 +7,13 @@ from .common import put_file
 from .common import read_content
 from .common import put_object
 
-def translate(txt, source='es', target='en'):
+def translate(txt, source='en', target='es'):
     translate = boto3.client('translate')
     response = translate.translate_text(Text=txt, SourceLanguageCode=source, TargetLanguageCode=target)
     
     return response
 
-def translate_from_mediafile(bucket, mediafile_key, source='en', target='es', prefix='translate_'):
+def translate_from_mediafile(bucket, mediafile_key, source='en', target='es',prefix='translate_'):
     try:
         content = read_content(bucket, mediafile_key)
 
