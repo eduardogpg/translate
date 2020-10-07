@@ -33,11 +33,12 @@ if __name__ == '__main__':
             bucket, transcribe_mediafile_key,
             source=source, target=target,
         )
-        logging.warning('>>> Transcibre generado.')
+        logging.warning('>>> Transcribe generado.')
 
         logging.warning('>>> Generando Subtitulos.')
         subtitle_mediafile_key = subtitles_from_mediafile(
             bucket, transcribe_mediafile_key,
+            source, target
         )
         logging.warning('>>> Subtitulos generados.')
 

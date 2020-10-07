@@ -37,8 +37,19 @@ Ejecutar script
 python main.py
 ```
 
-Al ejecutar el script se pedirá la URI absoluta del vídeo y el lenguaje de este.
-El script generará el transcribe, translate y los subtitulos (En el idoma original) del vídeo.
+Al ejecutar el script se pedirá el siguiente listado de datos:
 
-Todos los archivos generados serán almancenados en el mismo bucket  donde se encuentra el video.
-Por default los subtitulos serán almacenados en la maquina local.
+* la URI absoluta del vídeo. 
+* El lenguaje del vídeo.
+* El idioma original.
+* El idioma destino a traducir.
+
+El script generará el transcribe, translate y los subtitulos del vídeo.
+
+Todos los archivos generados serán almancenados en el mismo bucket donde se encuentra el video. Esto con los siguientes prefijos.
+
+* _transcribe
+* _translate
+* _subtitles
+
+Los subtitulos de igual manerá serán almacenados en la maquina local, en la carpeta tmp.

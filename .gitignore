@@ -1,6 +1,7 @@
 /project/temp
-/temp
-/tmp
+
+/temp/*.srt
+/tmp/*.srt
 
 /__pycache__
 *.srt

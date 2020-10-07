@@ -107,18 +107,10 @@ def generate_line(line, sentence, start_time, end_time):
         end_time=end_time
     )
 
-def generate_line_translated(line, timer, sentence):
-    
-    return SUBTITLE_TEMPLATE_TRANSLATED.format(
-        line=line,
-        sentence=sentence.strip(),
-        timer=timer
-    )
-
 def get_timer(sentence):
     return sentence.split(' --> ')
 
-def generate_subtitles_from_str(bucket, local_path):
+def generate_subtitles_from_str(bucket, local_path, source='en', target='es'):
     
     sentence = ''
     current_line = 0
@@ -145,8 +137,9 @@ def generate_subtitles_from_str(bucket, local_path):
                 sentence = sentence + line
 
                 if '.' in line or '?' in line or '!' in line:
-
-                    current_phrase['sentence'] = translate(sentence)['TranslatedText']
+                    
+                    response = translate(sentence, source, target)
+                    current_phrase['sentence'] = response['TranslatedText']
 
                     sentence = ''
                     phrases.append(current_phrase)
@@ -170,7 +163,7 @@ def generate_subtitle_file(response, local_path):
             sentence = generate_line(line, item['sentence'], start_time, end_time)
             file.write(sentence)
 
-def subtitles_from_mediafile(bucket, medifile_key, prefix='subtitle_'):
+def subtitles_from_mediafile(bucket, medifile_key, source, target, prefix='subtitle_'):
     
     response = generate_subtitles_from_transcribe(bucket, medifile_key)
     
@@ -180,12 +173,13 @@ def subtitles_from_mediafile(bucket, medifile_key, prefix='subtitle_'):
     local_path = f'tmp/{subtitle_mediafile_key}'
 
     generate_subtitle_file(response, local_path)
+    subtitle_from_str_file(bucket, local_path, source, target)
+
     put_file(bucket, subtitle_mediafile_key, local_path)
 
     return subtitle_mediafile_key
 
-def subtitle_from_str_file(bucket, local_path):
+def subtitle_from_str_file(bucket, local_path, source, target):
 
-    response = generate_subtitles_from_str(bucket, local_path)
-
+    response = generate_subtitles_from_str(bucket, local_path, source, target)
     generate_subtitle_file(response, local_path)
