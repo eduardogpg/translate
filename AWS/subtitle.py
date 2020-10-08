@@ -211,7 +211,7 @@ def subtitles_from_mediafile(bucket, medifile_key, source, target, prefix='subti
     subtitle_mediafile_key = subtitle_mediafile_key.replace('transcribe_', prefix)
 
     # Change to root file
-    local_path = f'tmp/{subtitle_mediafile_key}'
+    local_path = f'{subtitle_mediafile_key}'
 
     generate_subtitle_file(response, local_path)
     subtitle_from_str_file(bucket, local_path, source, target)
