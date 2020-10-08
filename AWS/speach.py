@@ -1,39 +1,36 @@
 import boto3
-
-client = boto3.client('polly')
+from mutagen.mp3 import MP3
+from datetime import datetime, timedelta
 
 def play_sound(text):
+    client = boto3.client('polly')
+
     response = client.synthesize_speech(OutputFormat="mp3",
                                         SampleRate="22050",
                                         Text=text,
-                                        VoiceId='Amy')
+                                        VoiceId='Mia')
 
     body = response['AudioStream'].read()
 
-    print(response)
-
-    with open('temp/voices.mp3', 'wb') as file:
+    local_path = 'tmp/voices.mp3'
+    
+    with open(local_path, 'wb') as file:
         file.write(body)
-    
-if __name__ == '__main__':
-    play_sound(
-        'Hello World, this a simple tess, sound test number 2'
-    )
 
-def getSecondsFromTranslation( textToTranslate, targetLangCode, audioFileName ):
+    return local_path
 
-    # Set up the Amazon Polly and Amazon Translate services
-    client = boto3.client('polly')
-    translate = boto3.client(service_name='translate', region_name="us-east-1", use_ssl=True)
+def get_duration_from_audio(local_path):
+    audio = MP3(local_path)
+    return audio.info.length - 0.6
+
+def add_duration_audio_to_time(time, local_path):
+    duration = get_duration_from_audio(local_path)
     
-    # Use the translated text to create the synthesized speech
-    response = client.synthesize_speech( OutputFormat="mp3", SampleRate="22050", Text=textToTranslate, VoiceId=getVoiceId( targetLangCode ) )
+    time = datetime.strptime(time, '%H:%M:%S.%f')
+    time = time + timedelta(seconds=duration)
     
-    # Write the stream out to disk so that we can load it into an AudioClip
-    writeAudioStream( response, audioFileName )
-    
-    # Load the temporary audio clip into an AudioFileClip
-    audio = AudioFileClip( audioFileName)
-        
-    # return the duration    
-    return audio.duration
+    return time.time()
+
+"""
+[Nicole, Kevin, Enrique, Tatyana, Russell, Lotte, Geraint, Carmen, Mads, Penelope, Mia, Joanna, Matthew, Brian, Seoyeon, Ruben, Ricardo, Maxim, Lea, Giorgio, Carla, Naja, Maja, Astrid, Ivy, Kimberly, Chantal, Amy, Vicki, Marlene, Ewa, Conchita, Camila, Karl, Zeina, Miguel, Mathieu, Justin, Lucia, Jacek, Bianca, Takumi, Ines, Gwyneth, Cristiano, Mizuki, Celine, Zhiyu, Jan, Liv, Joey, Raveena, Filiz, Dora, Salli, Aditi, Vitoria, Emma, Lupe, Hans, Kendra]
+"""

@@ -10,6 +10,9 @@ from .common import put_file
 
 from .translate import translate
 
+from .speach import play_sound
+from .speach import add_duration_audio_to_time
+
 def generate_phrase():
     return { 'start_time': None, 'end_time': None, 
             'words': list(), 
@@ -21,7 +24,19 @@ def get_time_code(seconds):
     t_secs = ((float( t_seconds) / 60) % 1) * 60
     t_mins = int( t_seconds / 60 )
     
-    return str( "%02d:%02d:%02d,%03d" % (00, t_mins, int(t_secs), t_hund ))
+    return str( "%02d:%02d:%02d.%03d" % (00, t_mins, int(t_secs), t_hund ))
+
+def get_timer(sentence):
+    return sentence.split(' --> ')
+
+def generate_line(line, sentence, start_time, end_time):
+    
+    return SUBTITLE_TEMPLATE.format(
+        line=line,
+        sentence=sentence.strip(),
+        start_time=start_time,
+        end_time=end_time
+    )
 
 def generate_subtitles_from_transcribe(bucket, medifile_key, limit=15):
     
@@ -72,7 +87,7 @@ def generate_subtitles_from_transcribe(bucket, medifile_key, limit=15):
 
             if phrase['words'] and ( len(phrase['words']) == limit or new_phrase):
                 
-                if len(phrase['words']) <= 2:
+                if len(phrase['words']) <= 2 and phrases:
                     
                     last_phrase = phrases[-1]
                     
@@ -97,18 +112,6 @@ def generate_subtitles_from_transcribe(bucket, medifile_key, limit=15):
 
     except Exception as err:
         logging.error("Exception", exc_info=True)
-
-def generate_line(line, sentence, start_time, end_time):
-    
-    return SUBTITLE_TEMPLATE.format(
-        line=line,
-        sentence=sentence.strip(),
-        start_time=start_time,
-        end_time=end_time
-    )
-
-def get_timer(sentence):
-    return sentence.split(' --> ')
 
 def generate_subtitles_from_str(bucket, local_path, source='en', target='es'):
     
@@ -163,6 +166,43 @@ def generate_subtitle_file(response, local_path):
             sentence = generate_line(line, item['sentence'], start_time, end_time)
             file.write(sentence)
 
+def chunks(lst, n):
+
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+def sanitaize_subtitles(response):
+
+    phrases = list()
+    for item in response:
+        words = item['sentence'].split(' ')
+
+        if len(words) > 15:
+
+            start_time = item['start_time']
+            end_time = item['end_time']
+
+            for phrase in chunks(words, 15):
+                sentence = ' '.join(phrase)
+
+                local_path = play_sound(sentence)
+                end_time = str(add_duration_audio_to_time(start_time, local_path))
+
+                print(
+                    {
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'sentence': sentence,
+                    }
+                )
+
+                start_time = end_time
+
+        else:
+            phrases.append(item)
+
+    return phrases
+
 def subtitles_from_mediafile(bucket, medifile_key, source, target, prefix='subtitle_'):
     
     response = generate_subtitles_from_transcribe(bucket, medifile_key)
@@ -170,6 +210,7 @@ def subtitles_from_mediafile(bucket, medifile_key, source, target, prefix='subti
     subtitle_mediafile_key = medifile_key.replace('.json', '.srt')
     subtitle_mediafile_key = subtitle_mediafile_key.replace('transcribe_', prefix)
 
+    # Change to root file
     local_path = f'tmp/{subtitle_mediafile_key}'
 
     generate_subtitle_file(response, local_path)
@@ -182,4 +223,5 @@ def subtitles_from_mediafile(bucket, medifile_key, source, target, prefix='subti
 def subtitle_from_str_file(bucket, local_path, source, target):
 
     response = generate_subtitles_from_str(bucket, local_path, source, target)
+    #response = sanitaize_subtitles(response)
     generate_subtitle_file(response, local_path)
