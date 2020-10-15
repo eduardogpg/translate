@@ -1,20 +1,21 @@
 import json
 import logging
 
+from pathlib import Path
 from datetime import datetime
 from datetime import timedelta
 
-from .common import read_content
 from .common import put_file
+from .common import read_content
 
 from .translate import translate
-
-from .speach import play_sound
-from .speach import add_duration_audio_to_time
 
 SUBTITLE_TEMPLATE = """{line}
 {start_time} --> {end_time}
 {sentence}\n\n"""
+
+PUNCTUATION_MARKS = ('.', '?', '!')
+MAX_WORDS = 15
 
 def generate_phrase():
     return { 
@@ -32,9 +33,6 @@ def get_time_code(seconds):
     
     return str( "%02d:%02d:%02d.%03d" % (00, t_mins, int(t_secs), t_hund ))
 
-def get_timer(sentence):
-    return sentence.split(' --> ')
-
 def generate_line(line, sentence, start_time, end_time):
     
     return SUBTITLE_TEMPLATE.format(
@@ -44,119 +42,126 @@ def generate_line(line, sentence, start_time, end_time):
         end_time=end_time
     )
 
-def generate_subtitles_from_transcribe(bucket, medifile_key, limit=15):
-    
-    try:
-        content = read_content(bucket, medifile_key)
-        content = json.loads(content)
+def subtitles_from_transcribe(bucket, medifile_key):
 
-        items = content['results']['items']
+    content = read_content(bucket, medifile_key)
+    content = json.loads(content)
 
-        phrases = list()
-        new_phrase = True
-        phrase = generate_phrase()
+    phrases = list()
+    new_phrase = True
+    phrase = generate_phrase()
 
-        for item in items:
-            
-            word = item['alternatives'][0]['content']
-            
-            if new_phrase:
+    for item in content['results']['items']:
+        
+        word = item['alternatives'][0]['content']
+        phrase['words'].append(word)
+
+        if new_phrase:
+            if item['type'] == 'pronunciation':
+                new_phrase = False
                 
-                if item['type'] == 'pronunciation':
-                    new_phrase = False
-                    
-                    phrase['words'].append(word)
-                    
-                    phrase['start_time'] = get_time_code(float(item['start_time']))
-                    phrase['end_time'] = get_time_code(float(item['end_time']))
+                phrase['start_time'] = get_time_code(float(item['start_time']))
+                phrase['end_time'] = get_time_code(float(item['end_time']))
 
-                elif item['type'] == 'punctuation':
-                    new_phrase = True
-
-                    last_phrase = phrases[-1]
-                    last_phrase['words'].append(word)
-                    phrases[-1] = last_phrase
-
-            else:
-                if item['type'] == 'pronunciation':
-                    
-                    phrase['words'].append(word)
-                    phrase['end_time'] = get_time_code(float(item['end_time']))
-
-                elif item['type'] == 'punctuation':
-                    
-                    if word in ('.', '?', '!'):
-                        new_phrase = True
-                    
-                    phrase['words'].append(word)
-            
-
-            if phrase['words'] and ( len(phrase['words']) == limit or new_phrase):
+            elif item['type'] == 'punctuation':
                 
-                if len(phrase['words']) <= 2 and phrases:
-                    
-                    last_phrase = phrases[-1]
-                    
-                    last_phrase['words'].extend(phrase['words'])
-                    last_phrase['end_time'] = phrase['end_time']
-
-                    phrases[-1] = last_phrase
-
-                else:
-                    phrases.append(phrase)
-                
-                new_phrase = True
-                phrase = generate_phrase()
-
-        for item in phrases:
-            sentence = ' '.join(item['words'])
-            sentence = sentence.replace(' ,', ',').replace(' .', '.')
-
-            item['sentence'] = sentence
+                phrase['words'].pop()
+                phrases[-1]['words'].append(word)
+        
+        else:
             
-        return phrases
+            if item['type'] == 'pronunciation':
+                phrase['end_time'] = get_time_code(float(item['end_time']))
 
-    except Exception as err:
-        logging.error("Exception", exc_info=True)
+            elif item['type'] == 'punctuation':
+                new_phrase = word in PUNCTUATION_MARKS
 
-def generate_subtitles_from_str(local_path, source='en', target='es'):
+        if len(phrase['words']) >= MAX_WORDS or new_phrase:
+
+            if len(phrase['words']) <= 2:
+                last_phrase = phrases.pop()
+
+                last_phrase['words'].extend(phrase['words'])
+                last_phrase['end_time'] = phrase['end_time'] or last_phrase['end_time']
+
+                phrase = last_phrase
+
+            new_phrase = True
+            phrases.append(phrase)
+            phrase = generate_phrase()
+
+    for phrase in phrases:
+        sentence = ' '.join(phrase['words'])
+        phrase['sentence'] = sentence.replace(' ,', ',').replace(' .', '.')
+
+    return phrases
+
+def transcribe_subtitles(response, source, target):
     
     sentence = ''
-    current_line = 0
-    
-    current_phrase = generate_phrase()
+    phrases = list()
+    phrase = generate_phrase()
+
+    for item in response:
+        
+        if phrase['start_time'] is None:
+            phrase['start_time'] = item['start_time']
+        
+        phrase['end_time'] = item['end_time']
+        
+        sentence = sentence + item['sentence'] + ' '
+
+        if any(punctuation in sentence for punctuation in PUNCTUATION_MARKS):
+            translated = translate(sentence, source, target)
+
+            phrase['sentence'] = translated['TranslatedText']
+            
+            sentence = ''
+            phrases.append(phrase)
+            phrase = generate_phrase()
+
+    return phrases
+
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+def divide_phrase(item):
     phrases = list()
 
-    with open(local_path, 'r') as file:
-        for line in file.readlines():
-            
-            current_line += 1                
-            line = line.replace('\n', '')
-            
-            if current_line == 2:
-                start_time, end_time = get_timer(line)
+    sentence = item['sentence'].split(' ')
+    start_time = datetime.strptime(item['start_time'], '%H:%M:%S.%f')
+    end_time = datetime.strptime(item['end_time'], '%H:%M:%S.%f')
 
-                if current_phrase.get('start_time') is None:
-                    current_phrase['start_time'] = start_time
-                
-                current_phrase['end_time'] = end_time
+    seconds = (end_time - start_time).seconds / len(sentence)
 
-            elif current_line == 3:
+    for words in chunks(sentence, MAX_WORDS):
 
-                sentence = sentence + line
+        end_time = start_time + timedelta(seconds=(seconds * len(words)) + 0.05)
 
-                if '.' in line or '?' in line or '!' in line:
-                    
-                    response = translate(sentence, source, target)
-                    current_phrase['sentence'] = response['TranslatedText']
-
-                    sentence = ''
-                    phrases.append(current_phrase)
-                    current_phrase = generate_phrase()
-
-            elif current_line == 4:
-                current_line = 0
+        phrases.append(
+            {
+                'start_time': start_time.strftime('%H:%M:%S.%f')[:-3],
+                'end_time': end_time.strftime('%H:%M:%S.%f')[:-3],
+                'sentence': ' '.join(words),
+            }
+        )
+        start_time = end_time
     
+    return phrases
+
+def sanitaize_subtitles(response):
+    
+    phrases = list()
+
+    for item in response:
+        
+        if len(item['sentence'].split(' ')) > MAX_WORDS:
+            phrases.extend(divide_phrase(item))
+        
+        else:
+            phrases.append(item)
+        
     return phrases
 
 def generate_subtitle_file(response, local_path):
@@ -172,73 +177,21 @@ def generate_subtitle_file(response, local_path):
             sentence = generate_line(line, item['sentence'], start_time, end_time)
             file.write(sentence)
 
-def chunks(lst, n):
-
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
-def divide(sentence, start_time, end_time, total_chunks=3):
-    sentences = sentence.split(' ')
-
-    start_time = datetime.strptime(start_time, '%H:%M:%S.%f')
-    end_time = datetime.strptime(end_time, '%H:%M:%S.%f')
-
-    seconds = (end_time - start_time).seconds
-    seconds_per_word = seconds / len(sentences)
-
-    phrases = list()
-
-    for words in chunks(sentences, 20):
-        
-        end_time = start_time + timedelta(seconds= ( seconds_per_word * len(words) ) + 0.05)
-        
-        phrases.append(
-            {
-                'start_time': start_time.strftime('%H:%M:%S.%f')[:-3],
-                'end_time': end_time.strftime('%H:%M:%S.%f')[:-3],
-                'sentence': ' '.join(words),
-            }
-        )
-        
-        start_time = end_time
-
-    return phrases
-
-def sanitaize_subtitles(response):
-
-    phrases = list()
-    for item in response:
-
-        if len(item['sentence'].split(' ')) > 20:
-            phrases.extend(
-                divide(item['sentence'], item['start_time'], item['end_time'])
-            )
-
-        else:
-            phrases.append(item)
-
-    return phrases
-
-def subtitles_from_mediafile(bucket, medifile_key, source, target, prefix='subtitle_'):
+def subtitles(bucket, medifile_key, source='en', target='es'):
     
-    response = generate_subtitles_from_transcribe(bucket, medifile_key)
-    
-    subtitle_mediafile_key = medifile_key.replace('.json', '.srt')
-    subtitle_mediafile_key = subtitle_mediafile_key.replace('transcribe_', prefix)
+    subtitles_mediafile_key = medifile_key.replace('.json', '.srt')
+    subtitles_mediafile_key = subtitles_mediafile_key.replace('transcribe_', 'translate_')
 
-    # Change to root file
-    local_path = f'{subtitle_mediafile_key}'
+    local_path = f'tmp/subtitles/'
+    subtitles_path = f'{local_path}{subtitles_mediafile_key}'
 
-    generate_subtitle_file(response, local_path)
-    subtitle_from_str_file(bucket, local_path, source, target)
+    Path(local_path).mkdir(parents=True, exist_ok=True)
 
-    put_file(bucket, subtitle_mediafile_key, local_path)
-
-    return subtitle_mediafile_key
-
-def subtitle_from_str_file(bucket, local_path, source, target):
-
-    response = generate_subtitles_from_str(local_path, source, target)
+    response = subtitles_from_transcribe(bucket, medifile_key)
+    response = transcribe_subtitles(response, source, target)
     response = sanitaize_subtitles(response)
 
-    generate_subtitle_file(response, local_path)
+    generate_subtitle_file(response, subtitles_path)
+    put_file(bucket, subtitles_mediafile_key, subtitles_path)
+
+    return subtitles_mediafile_key
