@@ -1,36 +1,86 @@
 import boto3
-from mutagen.mp3 import MP3
-from datetime import datetime, timedelta
 
-def play_sound(text):
-    client = boto3.client('polly')
+from pathlib import Path
 
-    response = client.synthesize_speech(OutputFormat="mp3",
-                                        SampleRate="22050",
-                                        Text=text,
-                                        VoiceId='Mia')
+from .common import download_file
 
-    body = response['AudioStream'].read()
+from moviepy.editor import VideoFileClip
+from moviepy.editor import AudioFileClip
+from moviepy.editor import concatenate_videoclips
 
-    local_path = 'tmp/voices.mp3'
+def play_sound(text, local_path, voice='Mia'):
+    try:
+        client = boto3.client('polly')
+
+        response = client.synthesize_speech(OutputFormat="mp3",
+                                            SampleRate="22050",
+                                            Text=text,
+                                            VoiceId=voice)
+
+        with open(local_path, 'wb') as file:
+            file.write(response['AudioStream'].read())
+
+        return local_path
     
-    with open(local_path, 'wb') as file:
-        file.write(body)
+    except Exception as err:
+        print(err)
+        return None
 
-    return local_path
-
-def get_duration_from_audio(local_path):
-    audio = MP3(local_path)
-    return audio.info.length - 0.6
-
-def add_duration_audio_to_time(time, local_path):
-    duration = get_duration_from_audio(local_path)
+def generate_polly_voices(srtfile_path, voice='Mia'):
+    audio_id = 0
+    audios = list()
     
-    time = datetime.strptime(time, '%H:%M:%S.%f')
-    time = time + timedelta(seconds=duration)
-    
-    return time.time()
+    current_line = 0
+    audio_path, start_time, end_time = None, None, None
 
-"""
-[Nicole, Kevin, Enrique, Tatyana, Russell, Lotte, Geraint, Carmen, Mads, Penelope, Mia, Joanna, Matthew, Brian, Seoyeon, Ruben, Ricardo, Maxim, Lea, Giorgio, Carla, Naja, Maja, Astrid, Ivy, Kimberly, Chantal, Amy, Vicki, Marlene, Ewa, Conchita, Camila, Karl, Zeina, Miguel, Mathieu, Justin, Lucia, Jacek, Bianca, Takumi, Ines, Gwyneth, Cristiano, Mizuki, Celine, Zhiyu, Jan, Liv, Joey, Raveena, Filiz, Dora, Salli, Aditi, Vitoria, Emma, Lupe, Hans, Kendra]
-"""
+    audios_local_path = 'tmp/audios/'
+    Path(audios_local_path).mkdir(parents=True, exist_ok=True)
+
+    with open(srtfile_path, 'r') as file:
+
+        for line in file.readlines():
+            
+            current_line += 1
+            line = line.split('\n')[0]
+
+            if current_line == 1:
+                audio_id += 1
+                audio_path = f'{audios_local_path}{audio_id}.mp3'
+
+            elif current_line == 2:
+                start_time, end_time =  line.split(' --> ')
+
+            elif current_line == 3:
+                play_sound(line, audio_path, voice)
+
+            else:
+                audios.append({
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'audio_path': audio_path
+                    })
+
+                current_line = 0
+                audio_path, start_time, end_time = None, None, None
+
+    return audios
+
+def generate_video_speech(bucket, mediafile_key, voices):
+
+    videos_local_path = 'tmp/videos/'
+    Path(videos_local_path).mkdir(parents=True, exist_ok=True)
+
+    videos = list()
+    video_path = f'{videos_local_path}{mediafile_key}'
+
+    download_file(bucket, mediafile_key, video_path)
+
+    for item in voices:
+
+        video = VideoFileClip(video_path).subclip(item['start_time'], item['end_time'])
+        video.audio = AudioFileClip(item['audio_path'])
+
+        videos.append(video)
+    
+    concatenate_videoclips(videos).write_videofile(video_path)
+    

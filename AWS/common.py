@@ -85,3 +85,5 @@ def get_bucket_from_mediafile(mediafile_uri):
 def get_format_from_mediafile(mediafile_uri):
     return mediafile_uri.split('.')[-1]
 
+def get_mediafile_key(mediafile_uri):
+    return mediafile_uri.split('/')[-1]

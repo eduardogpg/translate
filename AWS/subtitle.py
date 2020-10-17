@@ -182,16 +182,16 @@ def subtitles(bucket, medifile_key, source='en', target='es'):
     subtitles_mediafile_key = medifile_key.replace('.json', '.srt')
     subtitles_mediafile_key = subtitles_mediafile_key.replace('transcribe_', 'translate_')
 
-    local_path = f'tmp/subtitles/'
-    subtitles_path = f'{local_path}{subtitles_mediafile_key}'
+    subtitles_local_path = f'tmp/subtitles/'
+    subtitle_path = f'{subtitles_local_path}{subtitles_mediafile_key}'
 
-    Path(local_path).mkdir(parents=True, exist_ok=True)
+    Path(subtitles_local_path).mkdir(parents=True, exist_ok=True)
 
     response = subtitles_from_transcribe(bucket, medifile_key)
     response = transcribe_subtitles(response, source, target)
     response = sanitaize_subtitles(response)
 
-    generate_subtitle_file(response, subtitles_path)
-    put_file(bucket, subtitles_mediafile_key, subtitles_path)
+    generate_subtitle_file(response, subtitle_path)
+    put_file(bucket, subtitles_mediafile_key, subtitle_path)
 
-    return subtitles_mediafile_key
+    return subtitles_mediafile_key, subtitle_path
