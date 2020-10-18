@@ -2,13 +2,13 @@ import logging
 
 from AWS import subtitles
 from AWS import transcribe
+from AWS import audio_speech
 
 from AWS import get_mediafile_key
 from AWS import get_bucket_from_mediafile
 from AWS import get_format_from_mediafile
 
-from AWS import generate_polly_voices
-from AWS import generate_video_speech
+from AWS.speach import generate_audio
 
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
@@ -39,10 +39,9 @@ if __name__ == '__main__':
         )
         logging.warning('>>> Subtitulos generados.')
 
-        # logging.warning('>>> Generando aúdio.')
-        # voices = generate_polly_voices(srtfile_path)
-        # generate_video_speech(bucket, mediafile_key, voices)
-        # logging.warning('>>> Aúdio generados.')
+        logging.warning('>>> Generando aúdio.')
+        audio_speech(srtfile_path, bucket, mediafile_key)
+        logging.warning('>>> Aúdio generados.')
 
     except Exception as err:
         print(err)

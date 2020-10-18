@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from .common import put_file
 from .common import read_content
+from .common import get_seconds_duration
 
 from .translate import translate
 
@@ -130,13 +131,12 @@ def divide_phrase(item):
     phrases = list()
 
     sentence = item['sentence'].split(' ')
+    
     start_time = datetime.strptime(item['start_time'], '%H:%M:%S.%f')
     end_time = datetime.strptime(item['end_time'], '%H:%M:%S.%f')
-
-    seconds = (end_time - start_time).seconds / len(sentence)
+    seconds = get_seconds_duration(item['start_time'], item['end_time']) / len(sentence)
 
     for words in chunks(sentence, MAX_WORDS):
-
         end_time = start_time + timedelta(seconds=(seconds * len(words)) + 0.05)
 
         phrases.append(
@@ -151,7 +151,6 @@ def divide_phrase(item):
     return phrases
 
 def sanitaize_subtitles(response):
-    
     phrases = list()
 
     for item in response:

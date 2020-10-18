@@ -1,6 +1,9 @@
 import boto3
 import logging
 
+from pathlib import Path
+from datetime import datetime
+
 def read_content(bucket, mediafile_key):
     try:
         s3 = boto3.client('s3')
@@ -87,3 +90,12 @@ def get_format_from_mediafile(mediafile_uri):
 
 def get_mediafile_key(mediafile_uri):
     return mediafile_uri.split('/')[-1]
+
+def get_seconds_duration(start_time, end_time):
+    start_time = datetime.strptime(start_time, '%H:%M:%S.%f')
+    end_time = datetime.strptime(end_time, '%H:%M:%S.%f')
+
+    return (end_time - start_time).seconds
+
+def delete_file(local_path):
+    Path(local_path).unlink()

@@ -6,5 +6,6 @@
 /__pycache__
 *.srt
 *.mp3
+*.mp4
 
 test.py
