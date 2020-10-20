@@ -78,24 +78,35 @@ def get_location(bucket):
         logging.error("Exception", exc_info=True)
         return None
 
-def get_mediafile_name(mediafile_uri):
-    mediafile = mediafile_uri.split('/')[-1]
-    return mediafile.split('.')[0]
-
-def get_bucket_from_mediafile(mediafile_uri):
-    return mediafile_uri.split('//')[1].split('.')[0]
-
-def get_format_from_mediafile(mediafile_uri):
-    return mediafile_uri.split('.')[-1]
-
-def get_mediafile_key(mediafile_uri):
-    return mediafile_uri.split('/')[-1]
-
 def get_seconds_duration(start_time, end_time):
     start_time = datetime.strptime(start_time, '%H:%M:%S.%f')
     end_time = datetime.strptime(end_time, '%H:%M:%S.%f')
 
     return (end_time - start_time).seconds
 
-def delete_file(local_path):
-    Path(local_path).unlink()
+def create_folder(bucket, directory_name):
+    try:
+    
+        s3 = boto3.client('s3')
+        key = directory_name + '/'
+    
+        s3.put_object(Bucket=bucket, Key=key)
+        return bucket + '/' + key
+
+    except Exception as err:
+        print(err)
+        return None
+
+def get_bucket(mediafile_uri):
+    return mediafile_uri.split('//')[1].split('.')[0]
+
+def get_mediafile_key(mediafile_uri):
+    mediafile_uri = mediafile_uri.split('//')[1]
+    return '/' + '/'.join(mediafile_uri.split('/')[1:])
+
+def get_mediafile_name(mediafile_uri):
+    mediafile = mediafile_uri.split('/')[-1]
+    return mediafile.split('.')[0]
+
+def get_mediafile_format(mediafile_uri):
+    return mediafile_uri.split('.')[-1]

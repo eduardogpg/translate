@@ -3,7 +3,6 @@ import boto3
 
 from pathlib import Path
 
-from .common import delete_file
 from .common import download_file
 from .common import get_seconds_duration
 

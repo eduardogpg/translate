@@ -35,7 +35,6 @@ def get_time_code(seconds):
     return str( "%02d:%02d:%02d.%03d" % (00, t_mins, int(t_secs), t_hund ))
 
 def generate_line(line, sentence, start_time, end_time):
-    
     return SUBTITLE_TEMPLATE.format(
         line=line,
         sentence=sentence.strip(),
@@ -43,9 +42,9 @@ def generate_line(line, sentence, start_time, end_time):
         end_time=end_time
     )
 
-def subtitles_from_transcribe(bucket, medifile_key):
+def subtitles_from_transcribe(bucket, transcribe_key):
 
-    content = read_content(bucket, medifile_key)
+    content = read_content(bucket, transcribe_key)
     content = json.loads(content)
 
     phrases = list()
@@ -98,7 +97,6 @@ def subtitles_from_transcribe(bucket, medifile_key):
     return phrases
 
 def transcribe_subtitles(response, source, target):
-    
     sentence = ''
     phrases = list()
     phrase = generate_phrase()
@@ -139,8 +137,7 @@ def divide_phrase(item):
     for words in chunks(sentence, MAX_WORDS):
         end_time = start_time + timedelta(seconds=(seconds * len(words)) + 0.05)
 
-        phrases.append(
-            {
+        phrases.append({
                 'start_time': start_time.strftime('%H:%M:%S.%f')[:-3],
                 'end_time': end_time.strftime('%H:%M:%S.%f')[:-3],
                 'sentence': ' '.join(words),
@@ -176,21 +173,17 @@ def generate_subtitle_file(response, local_path):
             sentence = generate_line(line, item['sentence'], start_time, end_time)
             file.write(sentence)
 
-def subtitles(bucket, medifile_key, source='en', target='es'):
-    
-    subtitles_mediafile_key = medifile_key.replace('.json', '.srt')
-    subtitles_mediafile_key = subtitles_mediafile_key.replace('transcribe_', 'translate_')
-
+def subtitles(bucket, transcribe_key, subtitles_key ,source, target):
     subtitles_local_path = f'tmp/subtitles/'
-    subtitle_path = f'{subtitles_local_path}{subtitles_mediafile_key}'
+    subtitles_path = f'{subtitles_local_path}{subtitles_key}'
 
     Path(subtitles_local_path).mkdir(parents=True, exist_ok=True)
 
-    response = subtitles_from_transcribe(bucket, medifile_key)
+    response = subtitles_from_transcribe(bucket, transcribe_key)
     response = transcribe_subtitles(response, source, target)
     response = sanitaize_subtitles(response)
 
-    generate_subtitle_file(response, subtitle_path)
-    put_file(bucket, subtitles_mediafile_key, subtitle_path)
+    generate_subtitle_file(response, subtitles_path)
+    put_file(bucket, subtitles_key, subtitles_path)
 
-    return subtitles_mediafile_key, subtitle_path
+    return subtitles_key
