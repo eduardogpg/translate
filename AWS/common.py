@@ -102,7 +102,7 @@ def get_bucket(mediafile_uri):
 
 def get_mediafile_key(mediafile_uri):
     mediafile_uri = mediafile_uri.split('//')[1]
-    return '/' + '/'.join(mediafile_uri.split('/')[1:])
+    return  '/'.join(mediafile_uri.split('/')[1:])
 
 def get_mediafile_name(mediafile_uri):
     mediafile = mediafile_uri.split('/')[-1]

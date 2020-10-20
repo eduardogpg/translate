@@ -1,6 +1,9 @@
 from .subtitle import subtitles
 from .transcribe import transcribe
-from .speach import audio_speech
+
+from .speach import polly_voices
+from .speach import generate_video
+from .speach import generate_audio
 
 from .common import create_folder
 

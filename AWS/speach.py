@@ -4,6 +4,7 @@ import boto3
 from pathlib import Path
 
 from .common import download_file
+from .common import read_content
 from .common import get_seconds_duration
 
 from moviepy.editor import VideoFileClip
@@ -43,7 +44,10 @@ def aws_polly(sentence, duration, voice_id, voice_local_path):
         voice_local_path=voice_local_path
     ))
 
-def polly_voices(srtfile_path, voice_id='Mia'):
+def polly_voices(bucket, str_key, voice_id):
+    content = read_content(bucket, str_key)
+    content = content.decode("utf-8") 
+
     audio_id = 0
     audios = list()
     
@@ -53,33 +57,30 @@ def polly_voices(srtfile_path, voice_id='Mia'):
     voices_local_path = 'tmp/voices/'
     Path(voices_local_path).mkdir(parents=True, exist_ok=True)
 
-    with open(srtfile_path, 'r') as file:
+    for line in content.split('\n'):
+        
+        current_line += 1
 
-        for line in file.readlines():
-            
-            current_line += 1
-            line = line.split('\n')[0]
+        if current_line == 1:
+            audio_id += 1
+            voice_local_path = f'{voices_local_path}{audio_id}.mp3'
 
-            if current_line == 1:
-                audio_id += 1
-                voice_local_path = f'{voices_local_path}{audio_id}.mp3'
+        elif current_line == 2:
+            start_time, end_time =  line.split(' --> ')
 
-            elif current_line == 2:
-                start_time, end_time =  line.split(' --> ')
+        elif current_line == 3:
+            duration = get_seconds_duration(start_time, end_time) + 0.5
+            aws_polly(line, duration, voice_id, voice_local_path)
 
-            elif current_line == 3:
-                duration = get_seconds_duration(start_time, end_time) + 0.5
-                aws_polly(line, duration, voice_id, voice_local_path)
+        else:
+            audios.append({
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'voice_local_path': voice_local_path
+                })
 
-            else:
-                audios.append({
-                        'start_time': start_time,
-                        'end_time': end_time,
-                        'voice_local_path': voice_local_path
-                    })
-
-                current_line = 0
-                voice_local_path, start_time, end_time = None, None, None
+            current_line = 0
+            voice_local_path, start_time, end_time = None, None, None
 
     return audios
 
@@ -91,17 +92,15 @@ def generate_audio(video_local_path):
 
     return voice_local_path
 
-def audio_speech(srtfile_path, bucket, mediafile_key, voice_id='Mia'):
-    voices = polly_voices(srtfile_path)
-
+def generate_video(bucket, video_key, video_name, voices):
     videos_local_path = 'tmp/videos/'
     Path(videos_local_path).mkdir(parents=True, exist_ok=True)
 
     videos = list()
-    video_local_path = f'{videos_local_path}{mediafile_key}'
-    video_translate_local_path = f'{videos_local_path}translate_{mediafile_key}'
+    video_local_path = f'{videos_local_path}{video_name}'
+    video_translate_local_path = f'{videos_local_path}translate_{video_name}.mp4'
 
-    download_file(bucket, mediafile_key, video_local_path)
+    download_file(bucket, video_key, video_local_path)
 
     for item in voices:
         video = VideoFileClip(video_local_path).subclip(item['start_time'], item['end_time'])
@@ -111,4 +110,4 @@ def audio_speech(srtfile_path, bucket, mediafile_key, voice_id='Mia'):
     
     concatenate_videoclips(videos).write_videofile(video_translate_local_path)
     
-    return generate_audio(video_translate_local_path)
+    return video_translate_local_path
