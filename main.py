@@ -26,14 +26,11 @@ if __name__ == '__main__':
     video_name = get_mediafile_name(video_uri)
     video_format = get_mediafile_format(video_uri)
 
-    now = datetime.now().strftime('%Y_%m_%d')
-    subtitle_key = f'{target}_{video_name}_{now}.srt'
-
     logging.warning('\n>>> Generando transcribe.')
     transcribe_key = transcribe(bucket, video_uri, video_name, 
                                             format=video_format, lenguage=lenguage)
     logging.warning('>>> Transcribe generado.')
     
     logging.warning('\n>>> Generando subtitulos.')
-    subtitles(bucket, transcribe_key, subtitle_key, source, target)
+    subtitles(bucket, transcribe_key, video_name, source, target)
     logging.warning('>>> Subtitulos generados.')
