@@ -21,6 +21,6 @@ if __name__ == '__main__':
     logging.warning('\n>>> Obteniendo archivo .srt')
     voices = polly_voices(bucket, str_key)
     
-    logging.warning('\n>>> Generando archivo mp3`s')
+    logging.warning('\n>>> Generando archivos mp3`s')
     generate_audio(voices, voice_id, speed)
-    logging.warning('\n>>> Archivos mp3`s. generados de forma exitosa.')
+    logging.warning('\n>>> Archivos mp3`s. generados de forma exitosa. tmp/voices/')

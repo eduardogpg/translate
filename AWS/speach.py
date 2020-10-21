@@ -46,7 +46,7 @@ def aws_polly(sentence, duration, voice_id, voice_local_path):
 
 def polly_voices(bucket, str_key):
     content = read_content(bucket, str_key)
-    content = content.decode("utf-8")   
+    content = content.decode()
     
     audio = dict()
     audios = list()
