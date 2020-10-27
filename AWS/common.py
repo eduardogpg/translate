@@ -9,8 +9,7 @@ def read_content(bucket, mediafile_key):
         s3 = boto3.client('s3')
         data = s3.get_object(Bucket=bucket, Key=mediafile_key)
 
-        content = data['Body'].read()
-        return content
+        return data['Body'].read()
 
     except Exception as err:
         logging.error("Exception", exc_info=True)
@@ -79,8 +78,8 @@ def get_location(bucket):
         return None
 
 def get_seconds_duration(start_time, end_time):
-    start_time = datetime.strptime(start_time, '%H:%M:%S.%f')
-    end_time = datetime.strptime(end_time, '%H:%M:%S.%f')
+    start_time = datetime.strptime(start_time, '%H:%M:%S,%f')
+    end_time = datetime.strptime(end_time, '%H:%M:%S,%f')
 
     return (end_time - start_time).seconds
 

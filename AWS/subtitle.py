@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from datetime import timedelta
 
-from .common import put_file
+from .common import upload_file
 from .common import read_content
 from .common import get_seconds_duration
 
@@ -32,7 +32,7 @@ def get_time_code(seconds):
     t_secs = ((float( t_seconds) / 60) % 1) * 60
     t_mins = int( t_seconds / 60 )
     
-    return str( "%02d:%02d:%02d.%03d" % (00, t_mins, int(t_secs), t_hund ))
+    return str( "%02d:%02d:%02d,%03d" % (00, t_mins, int(t_secs), t_hund ))
 
 def generate_line(line, sentence, start_time, end_time):
     return SUBTITLE_TEMPLATE.format(
@@ -64,7 +64,6 @@ def subtitles_from_transcribe(bucket, transcribe_key):
                 phrase['end_time'] = get_time_code(float(item['end_time']))
 
             elif item['type'] == 'punctuation':
-                
                 phrase['words'].pop()
                 phrases[-1]['words'].append(word)
         
@@ -130,16 +129,16 @@ def divide_phrase(item):
 
     sentence = item['sentence'].split(' ')
     
-    start_time = datetime.strptime(item['start_time'], '%H:%M:%S.%f')
-    end_time = datetime.strptime(item['end_time'], '%H:%M:%S.%f')
+    start_time = datetime.strptime(item['start_time'], '%H:%M:%S,%f')
+    end_time = datetime.strptime(item['end_time'], '%H:%M:%S,%f')
     seconds = get_seconds_duration(item['start_time'], item['end_time']) / len(sentence)
 
     for words in chunks(sentence, MAX_WORDS):
         end_time = start_time + timedelta(seconds=(seconds * len(words)) + 0.05)
 
         phrases.append({
-                'start_time': start_time.strftime('%H:%M:%S.%f')[:-3],
-                'end_time': end_time.strftime('%H:%M:%S.%f')[:-3],
+                'start_time': start_time.strftime('%H:%M:%S,%f')[:-3],
+                'end_time': end_time.strftime('%H:%M:%S,%f')[:-3],
                 'sentence': ' '.join(words),
             }
         )
@@ -192,7 +191,7 @@ def subtitles(bucket, transcribe_key, str_name, source, target):
     response = sanitaize_subtitles(response)
     generate_subtitle_file(response, translate_subtitle_local_path)
     
-    put_file(bucket, subtitle_key, subtitle_local_path)
-    put_file(bucket, translate_subtitle_key, translate_subtitle_local_path)
+    upload_file(bucket, subtitle_key, subtitle_local_path, 'txt/srt')
+    upload_file(bucket, translate_subtitle_key, translate_subtitle_local_path, 'txt/srt')
 
     return subtitle_key, translate_subtitle_key
