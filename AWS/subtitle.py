@@ -5,6 +5,8 @@ from pathlib import Path
 from datetime import datetime
 from datetime import timedelta
 
+from .common import DATE_FORMAT
+
 from .common import upload_file
 from .common import read_content
 from .common import get_seconds_duration
@@ -35,6 +37,9 @@ def get_time_code(seconds):
     return str( "%02d:%02d:%02d,%03d" % (00, t_mins, int(t_secs), t_hund ))
 
 def generate_line(line, sentence, start_time, end_time):
+    sentence = sentence.replace('á', 'a').replace('é', 'e')
+    sentence = sentence.replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
+
     return SUBTITLE_TEMPLATE.format(
         line=line,
         sentence=sentence.strip(),
@@ -43,7 +48,6 @@ def generate_line(line, sentence, start_time, end_time):
     )
 
 def subtitles_from_transcribe(bucket, transcribe_key):
-
     content = read_content(bucket, transcribe_key)
     content = json.loads(content)
 
@@ -129,16 +133,16 @@ def divide_phrase(item):
 
     sentence = item['sentence'].split(' ')
     
-    start_time = datetime.strptime(item['start_time'], '%H:%M:%S,%f')
-    end_time = datetime.strptime(item['end_time'], '%H:%M:%S,%f')
+    start_time = datetime.strptime(item['start_time'], DATE_FORMAT)
+    end_time = datetime.strptime(item['end_time'], DATE_FORMAT)
     seconds = get_seconds_duration(item['start_time'], item['end_time']) / len(sentence)
 
     for words in chunks(sentence, MAX_WORDS):
         end_time = start_time + timedelta(seconds=(seconds * len(words)) + 0.05)
 
         phrases.append({
-                'start_time': start_time.strftime('%H:%M:%S,%f')[:-3],
-                'end_time': end_time.strftime('%H:%M:%S,%f')[:-3],
+                'start_time': start_time.strftime(DATE_FORMAT)[:-3],
+                'end_time': end_time.strftime(DATE_FORMAT)[:-3],
                 'sentence': ' '.join(words),
             }
         )
@@ -153,7 +157,6 @@ def sanitaize_subtitles(response):
         
         if len(item['sentence'].split(' ')) > MAX_WORDS:
             phrases.extend(divide_phrase(item))
-        
         else:
             phrases.append(item)
         

@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
+DATE_FORMAT = '%H:%M:%S,%f'
+
 def read_content(bucket, mediafile_key):
     try:
         s3 = boto3.client('s3')
@@ -78,8 +80,8 @@ def get_location(bucket):
         return None
 
 def get_seconds_duration(start_time, end_time):
-    start_time = datetime.strptime(start_time, '%H:%M:%S,%f')
-    end_time = datetime.strptime(end_time, '%H:%M:%S,%f')
+    start_time = datetime.strptime(start_time, DATE_FORMAT)
+    end_time = datetime.strptime(end_time, DATE_FORMAT)
 
     return (end_time - start_time).seconds
 
