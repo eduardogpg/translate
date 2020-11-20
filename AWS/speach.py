@@ -44,10 +44,7 @@ def aws_polly(sentence, duration, voice_id, voice_local_path):
         voice_local_path=voice_local_path
     ))
 
-def polly_voices(local_path, bucket=None, str_key=None):
-    # content = read_content(bucket, str_key)
-    # content = content.decode()
-    
+def polly_voices(local_path):
     audio = dict()
     audios = list()
 
@@ -90,30 +87,3 @@ def generate_audio(response, voice_id, speed):
             aws_polly(item['sentence'], item['duration'], voice_id, local_path)
         else:
             play_sound(item['sentence'], voice_id, local_path)
-    
-# def generate_video(bucket, video_key, video_name, voices):
-#     videos_local_path = 'tmp/videos/'
-#     Path(videos_local_path).mkdir(parents=True, exist_ok=True)
-
-#     videos = list()
-#     video_local_path = f'{videos_local_path}{video_name}'
-#     video_translate_local_path = f'{videos_local_path}translate_{video_name}.mp4'
-
-#     download_file(bucket, video_key, video_local_path)
-
-#     for item in voices:
-#         video = VideoFileClip(video_local_path).subclip(item['start_time'], item['end_time'])
-#         video.audio = AudioFileClip(item['voice_local_path'])
-
-#         videos.append(video)
-    
-#     concatenate_videoclips(videos).write_videofile(video_translate_local_path)
-    
-    # voice_local_path = video_local_path.replace('.mp4', '.mp3')
-
-    # video = VideoFileClip(video_local_path)
-    # video.audio.write_audiofile(voice_local_path)
-
-    # return voice_local_path
-
-    # return video_translate_local_path

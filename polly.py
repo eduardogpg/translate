@@ -11,12 +11,11 @@ logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
 if __name__ == '__main__':
     # str_uri = input('Ingresa la URL del archivo .srt: ').strip()
-
     url_path = input('Ingresa el PATH (local) del archivo .srt: ').strip()
     
     source = input('Idioma del archivo original (en): ')
     voice_id = input('Voz polly (Ejemplo: Mia): ')
-    speed = input('Aplicar ducación máxma (si/no): ').lower() == 'si'
+    speed = input('Aplicar duración máxma (si/no): ').lower() == 'si'
 
     # bucket = get_bucket(str_uri)
     # str_key = get_mediafile_key(str_uri)

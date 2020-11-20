@@ -30,6 +30,7 @@ def download_file(bucket, mediafile_key, local_path):
         logging.error("Exception", exc_info=True)
         return None
 
+
 def put_file(bucket, mediafile_key, local_path):
     try:
         s3 = boto3.client('s3')
@@ -41,6 +42,7 @@ def put_file(bucket, mediafile_key, local_path):
         logging.error("Exception", exc_info=True)
         return None
 
+
 def put_object(bucket, mediafile_key, content):
     try:
         s3 = boto3.client('s3')
@@ -51,6 +53,7 @@ def put_object(bucket, mediafile_key, content):
     except Exception as err:
         logging.error("Exception", exc_info=True)
         return None
+
 
 def upload_file(bucket, mediafile_key, local_path, content_type):
     try:
@@ -67,7 +70,8 @@ def upload_file(bucket, mediafile_key, local_path, content_type):
     except Exception as err:
         logging.error("Exception", exc_info=True)
         return None
-    
+
+
 def get_location(bucket):
     try:
         s3 = boto3.client('s3')
@@ -79,11 +83,6 @@ def get_location(bucket):
         logging.error("Exception", exc_info=True)
         return None
 
-def get_seconds_duration(start_time, end_time):
-    start_time = datetime.strptime(start_time, DATE_FORMAT)
-    end_time = datetime.strptime(end_time, DATE_FORMAT)
-
-    return (end_time - start_time).seconds
 
 def create_folder(bucket, directory_name):
     try:
@@ -98,16 +97,26 @@ def create_folder(bucket, directory_name):
         print(err)
         return None
 
+def get_seconds_duration(start_time, end_time):
+    start_time = datetime.strptime(start_time, DATE_FORMAT)
+    end_time = datetime.strptime(end_time, DATE_FORMAT)
+
+    return (end_time - start_time).seconds
+
+
 def get_bucket(mediafile_uri):
     return mediafile_uri.split('//')[1].split('.')[0]
+
 
 def get_mediafile_key(mediafile_uri):
     mediafile_uri = mediafile_uri.split('//')[1]
     return  '/'.join(mediafile_uri.split('/')[1:])
 
+
 def get_mediafile_name(mediafile_uri):
     mediafile = mediafile_uri.split('/')[-1]
     return mediafile.split('.')[0]
+
 
 def get_mediafile_format(mediafile_uri):
     return mediafile_uri.split('.')[-1]

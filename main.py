@@ -5,10 +5,7 @@ from datetime import datetime
 from AWS import subtitles
 from AWS import transcribe
 
-from AWS import create_folder
-
 from AWS import get_bucket
-from AWS import get_mediafile_key
 from AWS import get_mediafile_name
 from AWS import get_mediafile_format
 
