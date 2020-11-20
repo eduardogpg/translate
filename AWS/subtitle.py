@@ -38,7 +38,7 @@ def simple_trick(sentence):
 def generate_line(line, sentence, start_time, end_time):
     return SUBTITLE_TEMPLATE.format(
         line=line,
-        sentence=simple_trick(sentence.strip()),
+        sentence=sentence.strip(),
         start_time=start_time,
         end_time=end_time
     )
@@ -68,7 +68,6 @@ def subtitles_from_transcribe(bucket, transcribe_key):
                 phrases[-1]['words'].append(word)
         
         else:
-            
             if item['type'] == 'pronunciation':
                 phrase['end_time'] = get_time_code(float(item['end_time']))
 

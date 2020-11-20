@@ -44,9 +44,9 @@ def aws_polly(sentence, duration, voice_id, voice_local_path):
         voice_local_path=voice_local_path
     ))
 
-def polly_voices(bucket, str_key):
-    content = read_content(bucket, str_key)
-    content = content.decode()
+def polly_voices(local_path, bucket=None, str_key=None):
+    # content = read_content(bucket, str_key)
+    # content = content.decode()
     
     audio = dict()
     audios = list()
@@ -54,25 +54,29 @@ def polly_voices(bucket, str_key):
     current_line = 0
     start_time, end_time = None, None
 
-    for line in content.split('\n'):
-        
-        current_line += 1
+    with open(local_path, 'r') as file:
 
-        if current_line == 2:
-            audio['start_time'], audio['end_time'] =  line.split(' --> ')
-            audio['duration'] = get_seconds_duration(audio['start_time'], audio['end_time'])
-
-        elif current_line == 3:
-            audio['sentence']  = line
-
-        elif current_line == 4:
-            audios.append(audio)
+        for line in file.readlines():
             
-            audio = dict()
-            current_line = 0
-            start_time, end_time = None, None
+            line = str(line).strip()
+            current_line += 1
 
-    return audios
+            if current_line == 2:
+                
+                audio['start_time'], audio['end_time'] =  line.split(' --> ')
+                audio['duration'] = get_seconds_duration(audio['start_time'], audio['end_time'])
+
+            elif current_line == 3:
+                audio['sentence']  = line
+
+            elif current_line == 4:
+                audios.append(audio)
+                
+                audio = dict()
+                current_line = 0
+                start_time, end_time = None, None
+
+        return audios
 
 def generate_audio(response, voice_id, speed):
     voices_local_path = 'tmp/voices/'
